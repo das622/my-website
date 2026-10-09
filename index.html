@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>David Segoviano</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Electric Royal Blue Palette */
+      --bg: #fafaf7;
+      --bg-card: rgba(255, 255, 255, 0.94);
+      --ink: #2554d7;          /* Electric Royal Blue */
+      --ink-primary: #3b6ae8;  /* Vibrant Mid-Tone */
+      --ink-muted: #5b75b3;    /* Soft Lapis Slate */
+      --ink-light: #9bb0e2;    /* Hazy Sky Blue */
+      --ink-subtle: rgba(37, 84, 215, 0.05);
+      --border: rgba(37, 84, 215, 0.12);
+      
+      --font-headline: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', monospace;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink-muted);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 0 1.5rem 4rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Prevent text highlight while dragging canvas */
+    body.is-dragging, 
+    body.is-dragging * {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      cursor: grabbing !important;
+    }
+
+    /* Interactive Physics Canvas Background */
+    #grid-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Minimal Top Nav (3 Pages) */
+    header {
+      padding: 2.75rem 0 3.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+    }
+
+    header a {
+      color: var(--ink);
+      text-decoration: none;
+      transition: opacity 0.15s ease;
+      position: relative;
+      padding-bottom: 2px;
+      font-weight: 500;
+    }
+
+    header a:hover {
+      opacity: 0.7;
+    }
+
+    header a.active {
+      border-bottom: 1.5px solid var(--ink);
+    }
+
+    /* Page View Transitions */
+    .page-view {
+      display: none;
+      animation: fadeIn 0.2s ease forwards;
+    }
+
+    .page-view.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Editorial Headline */
+    .page-title {
+      font-family: var(--font-headline);
+      font-size: 3.75rem;
+      line-height: 1.1;
+      color: var(--ink);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Home View */
+    .hero {
+      text-align: center;
+      padding: 3rem 0 3.5rem;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .hero-tags {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--ink-muted);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-bio {
+      font-size: 1.15rem;
+      color: var(--ink-primary);
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .hero-preview-box {
+      background: var(--bg-card);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2.25rem;
+      box-shadow: 0 4px 20px rgba(37, 84, 215, 0.04);
+      display: inline-block;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      max-width: 440px;
+      width: 100%;
+      text-align: left;
+    }
+
+    .hero-preview-box:hover {
+      border-color: var(--ink);
+      transform: translateY(-2px);
+    }
+
+    .hero-preview-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+
+    .hero-preview-title {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.35rem;
+    }
+
+    .hero-preview-desc {
+      font-size: 0.88rem;
+      color: var(--ink-muted);
+    }
+
+    .hero-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.75rem;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+    }
+
+    .hero-links a {
+      color: var(--ink);
+      text-decoration: none;
+      transition: opacity 0.15s ease;
+    }
+
+    .hero-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Page Header */
+    .page-header {
+      margin-bottom: 3rem;
+    }
+
+    .page-subtitle {
+      font-size: 1.05rem;
+      color: var(--ink-primary);
+    }
+
+    /* Work Master-Detail (Desktop) */
+    .work-container {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .project-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .project-item {
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      border: 1px solid transparent;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .project-item:hover {
+      background: var(--ink-subtle);
+    }
+
+    .project-item.active {
+      background: var(--bg-card);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-color: var(--border);
+      box-shadow: 0 2px 10px rgba(37, 84, 215, 0.05);
+    }
+
+    .project-item-title {
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .project-item.active .project-item-title {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .project-glyph {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .project-item.active .project-glyph {
+      color: var(--ink);
+      transform: rotate(45deg);
+    }
+
+    .project-item-category {
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      margin-top: 0.15rem;
+      margin-left: 1.25rem;
+    }
+
+    /* Desktop Viewport Monitor */
+    .project-viewport {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      box-shadow: 0 4px 20px rgba(37, 84, 215, 0.05);
+      min-height: 440px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .preview-window {
+      width: 100%;
+      height: 230px;
+      background: #0f1c3a;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .preview-window canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .window-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.5rem 0.85rem;
+      background: rgba(15, 28, 58, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #9bb0e2;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .window-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2554d7;
+      opacity: 0.7;
+    }
+
+    .preview-meta h3 {
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .preview-meta p {
+      font-size: 0.92rem;
+      color: var(--ink-muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.55;
+    }
+
+    .preview-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: var(--ink-subtle);
+      color: var(--ink);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .preview-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 500;
+      transition: gap 0.15s ease;
+    }
+
+    .preview-action:hover {
+      gap: 0.65rem;
+    }
+
+    /* Trajectory View */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 680px;
+    }
+
+    .timeline-item {
+      background: var(--bg-card);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem 1.75rem;
+      transition: border-color 0.16s ease;
+    }
+
+    .timeline-item:hover {
+      border-color: var(--ink);
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      margin-bottom: 0.35rem;
+    }
+
+    .timeline-role {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.35rem;
+    }
+
+    .timeline-desc {
+      font-size: 0.92rem;
+      color: var(--ink-muted);
+      line-height: 1.55;
+    }
+
+    /* Inline Mobile Details Container (Hidden on Desktop) */
+    .mobile-detail-pane {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--ink-light);
+      font-family: var(--font-mono);
+    }
+
+    footer a {
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    /* REAL MOBILE RESPONSIVE RULES (Zero Horizontal Scrolling) */
+    @media (max-width: 768px) {
+      body {
+        padding: 0 1.25rem 3rem;
+      }
+
+      header {
+        padding: 2rem 0 2.5rem;
+        gap: 1.75rem;
+      }
+
+      .page-title {
+        font-size: 2.75rem;
+      }
+
+      .work-container {
+        grid-template-columns: 1fr;
+      }
+
+      /* Hide the floating right-hand desktop monitor on phones */
+      .project-viewport {
+        display: none;
+      }
+
+      /* Allow the active project to expand vertically in-line right where tapped */
+      .project-item.active .mobile-detail-pane {
+        display: block;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Full-Screen Interactive Physics Grid Canvas -->
+  <canvas id="grid-canvas"></canvas>
+
+  <div class="container">
+    <header>
+      <a href="#/home" data-route="home">home</a>
+      <a href="#/work" data-route="work">work</a>
+      <a href="#/trajectory" data-route="trajectory">trajectory</a>
+    </header>
+
+    <!-- 1. HOME VIEW -->
+    <div class="page-view" id="view-home">
+      <section class="hero">
+        <h1 class="page-title">hi, I'm David.</h1>
+        <div class="hero-tags">software engineer · builder</div>
+        <p class="hero-bio">
+          just designing systems and building cool things.
+        </p>
+
+        <a href="#/work" class="hero-preview-box">
+          <div class="hero-preview-tag">FEATURED ARCHITECTURE</div>
+          <div class="hero-preview-title">Telemetry & Metric Engine ↗</div>
+          <div class="hero-preview-desc">High-throughput asynchronous ingest pipeline for parsing operational time-series metrics.</div>
+        </a>
+
+        <div class="hero-links">
+          <a href="#/work">explore work</a>
+          <a href="https://github.com" target="_blank" rel="noreferrer">github ↗</a>
+          <a href="https://linkedin.com" target="_blank" rel="noreferrer">linkedin ↗</a>
+        </div>
+      </section>
+    </div>
+
+    <!-- 2. WORK VIEW -->
+    <div class="page-view" id="view-work">
+      <div class="page-header">
+        <h1 class="page-title">Things I've made.</h1>
+        <p class="page-subtitle">Selected systems and open experiments. Tap to inspect.</p>
+      </div>
+
+      <div class="work-container">
+        <!-- Vertical Project List (Expands accordion-style on phones) -->
+        <div class="project-list" id="projectList"></div>
+
+        <!-- Desktop Monitor -->
+        <div class="project-viewport">
+          <div>
+            <div class="preview-window">
+              <div class="window-header">
+                <div class="window-dots">
+                  <div class="window-dot"></div>
+                  <div class="window-dot"></div>
+                  <div class="window-dot"></div>
+                </div>
+                <span id="windowMeta">RUNNING // SYS.01</span>
+              </div>
+              <canvas id="projectCanvas"></canvas>
+            </div>
+            <div class="preview-meta">
+              <h3 id="previewTitle">Async Pipeline</h3>
+              <p id="previewDesc">Distributed task queue processing background analytics.</p>
+              <div class="preview-tags" id="previewTags"></div>
+            </div>
+          </div>
+          <div>
+            <a href="#" class="preview-action">Inspect Source Code <span>→</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TRAJECTORY VIEW -->
+    <div class="page-view" id="view-trajectory">
+      <div class="page-header">
+        <h1 class="page-title">Where I've been.</h1>
+        <p class="page-subtitle">Education, milestones, and systems experience.</p>
+      </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div>40.94° n, 74.66° w</div>
+      <div><a href="mailto:david@example.com">say hello ↗</a></div>
+    </footer>
+  </div>
+
+  <script>
+    // 1. Projects Data
+    const projects = [
+      {
+        id: "sys-01",
+        title: "Telemetry & Metric Engine",
+        category: "Distributed Architecture",
+        desc: "High-throughput asynchronous ingest pipeline for parsing operational time-series metrics, equipped with connection pooling and idempotent job queues.",
+        tags: ["Java", "Spring Boot", "PostgreSQL", "Redis", "Docker"],
+        meta: "SYS.01 // METRICS_RUNNER",
+        canvasMode: "wave"
+      },
+      {
+        id: "sys-02",
+        title: "Predictive Analytics Model",
+        category: "Machine Learning Pipeline",
+        desc: "End-to-end data processing workflow for real-time inference on structured tabular event streams with light gradient boosting models.",
+        tags: ["Python", "Pandas", "LightGBM", "FastAPI"],
+        meta: "SYS.02 // MODEL_INFERENCE",
+        canvasMode: "matrix"
+      },
+      {
+        id: "sys-03",
+        title: "Job Harvest & Sync Service",
+        category: "Background Task Engine",
+        desc: "Containerized worker daemon coordinating distributed scraping workers, rate-limiting handlers, and relational data normalization.",
+        tags: ["Python", "FastAPI", "Celery", "PostgreSQL"],
+        meta: "SYS.03 // HARVEST_WORKER",
+        canvasMode: "grid"
+      },
+      {
+        id: "sys-04",
+        title: "Auth & Identity Gateway",
+        category: "Security & Cloud Ops",
+        desc: "Stateless authentication service issuing cryptographically signed tokens with role-based routing controls and Redis-backed invalidation.",
+        tags: ["Java", "Spring Security", "JWT", "AWS RDS"],
+        meta: "SYS.04 // GATEWAY_AUTH",
+        canvasMode: "nodes"
+      }
+    ];
+
+    let activeProject = projects[0];
+
+    // 2. Hash Router
+    function handleRouting() {
+      const hash = window.location.hash.replace("#/", "") || "home";
+      
+      document.querySelectorAll("header a").forEach(link => {
+        link.classList.toggle("active", link.dataset.route === hash);
+      });
+
+      document.querySelectorAll(".page-view").forEach(view => {
+        view.classList.remove("active");
+      });
+
+      const currentView = document.getElementById(`view-${hash}`);
+      if (currentView) {
+        currentView.classList.add("active");
+      } else {
+        document.getElementById("view-home").classList.add("active");
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    window.addEventListener("hashchange", handleRouting);
+    window.addEventListener("DOMContentLoaded", handleRouting);
+
+    // 3. Render Projects (With Mobile Inline Accordion)
+    const projectListEl = document.getElementById("projectList");
+    function renderProjects() {
+      projectListEl.innerHTML = "";
+      projects.forEach((proj) => {
+        const isActive = proj.id === activeProject.id;
+        const item = document.createElement("div");
+        item.className = `project-item ${isActive ? "active" : ""}`;
+        
+        item.innerHTML = `
+          <div class="project-item-title">
+            <span class="project-glyph">◇</span>
+            ${proj.title}
+          </div>
+          <div class="project-item-category">${proj.category}</div>
+          
+          <!-- Automatically expands under the clicked item on mobile -->
+          <div class="mobile-detail-pane">
+            <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0.75rem;">${proj.desc}</p>
+            <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+              ${proj.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+            </div>
+          </div>
+        `;
+
+        item.addEventListener("click", () => {
+          activeProject = proj;
+          updateViewport();
+          renderProjects();
+        });
+        projectListEl.appendChild(item);
+      });
+    }
+
+    function updateViewport() {
+      document.getElementById("previewTitle").textContent = activeProject.title;
+      document.getElementById("previewDesc").textContent = activeProject.desc;
+      document.getElementById("windowMeta").textContent = activeProject.meta;
+      
+      const tagsContainer = document.getElementById("previewTags");
+      tagsContainer.innerHTML = "";
+      activeProject.tags.forEach(t => {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = t;
+        tagsContainer.appendChild(tag);
+      });
+    }
+
+    renderProjects();
+    updateViewport();
+
+    // 4. INTERACTIVE PHYSICS GRID: DRAG + OPTICAL HOVER LENS
+    const gridCanvas = document.getElementById("grid-canvas");
+    const gridCtx = gridCanvas.getContext("2d");
+    let gw, gh;
+
+    function resizeGrid() {
+      gw = gridCanvas.width = window.innerWidth;
+      gh = gridCanvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeGrid);
+    resizeGrid();
+
+    const cellSize = 38;
+    let offsetX = 0;
+    let offsetY = 0;
+    let vx = 0.28;
+    let vy = 0.28;
+
+    let mouse = { x: -1000, y: -1000, isDown: false, lastX: 0, lastY: 0 };
+    let dragVelocityX = 0;
+    let dragVelocityY = 0;
+
+    const lensRadius = 140;
+    const lensStrength = 22;
+
+    function handlePointerMove(clientX, clientY) {
+      mouse.x = clientX;
+      mouse.y = clientY;
+
+      if (mouse.isDown) {
+        if (window.getSelection) {
+          window.getSelection().removeAllRanges();
+        }
+
+        const dx = clientX - mouse.lastX;
+        const dy = clientY - mouse.lastY;
+        
+        offsetX += dx;
+        offsetY += dy;
+
+        dragVelocityX = dx;
+        dragVelocityY = dy;
+
+        mouse.lastX = clientX;
+        mouse.lastY = clientY;
+      }
+    }
+
+    function handlePointerDown(clientX, clientY, target) {
+      if (target.closest("a, button, input, .project-item")) {
+        return;
+      }
+      mouse.isDown = true;
+      mouse.lastX = clientX;
+      mouse.lastY = clientY;
+      dragVelocityX = 0;
+      dragVelocityY = 0;
+      document.body.classList.add("is-dragging");
+    }
+
+    function handlePointerUp() {
+      if (mouse.isDown) {
+        mouse.isDown = false;
+        document.body.classList.remove("is-dragging");
+        vx = dragVelocityX * 0.45;
+        vy = dragVelocityY * 0.45;
+      }
+    }
+
+    // Mouse listeners
+    window.addEventListener("mousemove", (e) => handlePointerMove(e.clientX, e.clientY));
+    window.addEventListener("mousedown", (e) => handlePointerDown(e.clientX, e.clientY, e.target));
+    window.addEventListener("mouseup", handlePointerUp);
+    window.addEventListener("mouseleave", () => {
+      mouse.x = -1000;
+      mouse.y = -1000;
+      if (mouse.isDown) handlePointerUp();
+    });
+
+    // Touch listeners (Smooth mobile dragging)
+    window.addEventListener("touchmove", (e) => {
+      if (e.touches.length > 0) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchstart", (e) => {
+      if (e.touches.length > 0) {
+        handlePointerDown(e.touches[0].clientX, e.touches[0].clientY, e.target);
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchend", handlePointerUp);
+
+    function applyLens(px, py) {
+      const dx = px - mouse.x;
+      const dy = py - mouse.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < lensRadius && dist > 0.001) {
+        const factor = (1 - Math.cos((dist / lensRadius) * Math.PI)) * 0.5;
+        const push = (1 - factor) * lensStrength;
+        return {
+          x: px + (dx / dist) * push,
+          y: py + (dy / dist) * push
+        };
+      }
+      return { x: px, y: py };
+    }
+
+    function drawInteractiveGrid() {
+      if (!mouse.isDown) {
+        offsetX += vx;
+        offsetY += vy;
+        vx += (0.28 - vx) * 0.02;
+        vy += (0.28 - vy) * 0.02;
+      }
+
+      gridCtx.clearRect(0, 0, gw, gh);
+      
+      const startX = (offsetX % cellSize) - cellSize * 2;
+      const startY = (offsetY % cellSize) - cellSize * 2;
+      const endX = gw + cellSize * 2;
+      const endY = gh + cellSize * 2;
+
+      gridCtx.strokeStyle = "rgba(37, 84, 215, 0.075)";
+      gridCtx.lineWidth = 1;
+
+      for (let x = startX; x <= endX; x += cellSize) {
+        gridCtx.beginPath();
+        let first = true;
+        for (let y = startY; y <= endY; y += 12) {
+          const pt = applyLens(x, y);
+          if (first) {
+            gridCtx.moveTo(pt.x, pt.y);
+            first = false;
+          } else {
+            gridCtx.lineTo(pt.x, pt.y);
+          }
+        }
+        gridCtx.stroke();
+      }
+
+      for (let y = startY; y <= endY; y += cellSize) {
+        gridCtx.beginPath();
+        let first = true;
+        for (let x = startX; x <= endX; x += 12) {
+          const pt = applyLens(x, y);
+          if (first) {
+            gridCtx.moveTo(pt.x, pt.y);
+            first = false;
+          } else {
+            gridCtx.lineTo(pt.x, pt.y);
+          }
+        }
+        gridCtx.stroke();
+      }
+
+      gridCtx.fillStyle = "rgba(37, 84, 215, 0.15)";
+      for (let x = startX; x <= endX; x += cellSize) {
+        for (let y = startY; y <= endY; y += cellSize) {
+          const pt = applyLens(x, y);
+          gridCtx.fillRect(pt.x - 1, pt.y - 1, 2, 2);
+        }
+      }
+
+      requestAnimationFrame(drawInteractiveGrid);
+    }
+    drawInteractiveGrid();
+
+    // 5. Work Viewport Graphic Canvas (Desktop)
+    const pCanvas = document.getElementById("projectCanvas");
+    const pCtx = pCanvas.getContext("2d");
+    let pw = pCanvas.width = 400;
+    let ph = pCanvas.height = 230;
+
+    let time = 0;
+    function renderProjectCanvas() {
+      time += 0.03;
+      pCtx.fillStyle = "#0c1726";
+      pCtx.fillRect(0, 0, pw, ph);
+
+      if (activeProject.canvasMode === "wave") {
+        pCtx.strokeStyle = "#3b82f6";
+        pCtx.lineWidth = 1.5;
+        pCtx.beginPath();
+        for (let x = 0; x < pw; x += 4) {
+          const y = ph / 2 + Math.sin(x * 0.02 + time) * 35 + Math.cos(x * 0.04 - time * 0.5) * 15;
+          if (x === 0) pCtx.moveTo(x, y);
+          else pCtx.lineTo(x, y);
+        }
+        pCtx.stroke();
+      } else if (activeProject.canvasMode === "matrix") {
+        pCtx.fillStyle = "#2554d7";
+        const cols = 14;
+        const rows = 8;
+        for (let i = 0; i < cols; i++) {
+          for (let j = 0; j < rows; j++) {
+            const val = Math.sin(i * 0.4 + j * 0.3 + time);
+            if (val > 0.2) {
+              pCtx.fillRect(35 + i * 24, 25 + j * 22, 6, 6);
+            }
+          }
+        }
+      } else if (activeProject.canvasMode === "grid") {
+        pCtx.strokeStyle = "rgba(37, 84, 215, 0.35)";
+        pCtx.lineWidth = 1;
+        const offset = (time * 12) % 25;
+        for (let x = offset; x < pw; x += 25) {
+          pCtx.beginPath();
+          pCtx.moveTo(x, 0);
+          pCtx.lineTo(x, ph);
+          pCtx.stroke();
+        }
+        for (let y = offset; y < ph; y += 25) {
+          pCtx.beginPath();
+          pCtx.moveTo(0, y);
+          pCtx.lineTo(pw, y);
+          pCtx.stroke();
+        }
+      } else if (activeProject.canvasMode === "nodes") {
+        pCtx.strokeStyle = "#2554d7";
+        pCtx.fillStyle = "#9bb0e2";
+        pCtx.lineWidth = 1;
+        const count = 5;
+        const pts = [];
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + time * 0.2;
+          const r = 50 + Math.sin(time + i) * 10;
+          pts.push({ x: pw / 2 + Math.cos(a) * r, y: ph / 2 + Math.sin(a) * r });
+        }
+        pCtx.beginPath();
+        pts.forEach((pt, idx) => {
+          const next = pts[(idx + 1) % count];
+          pCtx.moveTo(pt.x, pt.y);
+          pCtx.lineTo(next.x, next.y);
+          pCtx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
+        });
+        pCtx.stroke();
+      }
+
+      requestAnimationFrame(renderProjectCanvas);
+    }
+    renderProjectCanvas();
+  </script>
+</body>
+</html>
